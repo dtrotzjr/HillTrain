@@ -18,6 +18,20 @@
 #define AUD_TRACK_SND03_DURATION 3
 #define CYCLE_LENGTH    45
 
+//#define SERIAL_DEBUGGING
+
+#ifdef SERIAL_DEBUGGING
+#define SERIAL_DEBUG(msg) Serial.print(msg)
+#else
+#define SERIAL_DEBUG(msg)
+#endif
+
+#ifdef SERIAL_DEBUGGING
+#define SERIAL_DEBUGLN(msg) Serial.println(msg)
+#else
+#define SERIAL_DEBUGLN(msg)
+#endif
+
 bool trainRunning = false;
 // Use this to calculate the current speed of the train.
 long stateStartedAt = 0;
@@ -66,9 +80,10 @@ void setup() {
     // Listen for the pin corresponding to the 
     // A button on the remote to change
     attachInterrupt(digitalPinToInterrupt(RX_D3_PIN), userToggledTrainState, CHANGE);
-
+#ifdef SERIAL_DEBUGGING
     Serial.begin(115200);
     Serial.println("Starting...");
+#endif
 }
 
 void loop() {
@@ -157,11 +172,11 @@ void accelerateTrain() {
         int speed = 200 + runningFor;
         if (speed < 256) {
             analogWrite(MC_EN_PIN, speed);
-            Serial.println(speed);
+            SERIAL_DEBUGLN(speed);
         } else {
             fullSpeed = true;
             digitalWrite(MC_EN_PIN, HIGH);
-            Serial.println("Full Speed");
+            SERIAL_DEBUGLN("Full Speed");
             
             trackStartedAt = millis();
             digitalWrite(AUD_TRACK_SND01_PIN, LOW);
@@ -191,11 +206,11 @@ void deccelerateTrain() {
         int speed = 255 - runningFor;
         if (speed > 200) {
             analogWrite(MC_EN_PIN, speed);
-            Serial.println(speed);
+            SERIAL_DEBUGLN(speed);
         } else {
             stopped = true;
             digitalWrite(MC_EN_PIN, LOW);
-            Serial.println("Stopped");
+            SERIAL_DEBUGLN("Stopped");
             
             setMovingState(STATE_STOPPED);
         }
@@ -206,13 +221,13 @@ void setMovingState(int movingState) {
     if(movingState != currentMovingState) {
       currentMovingState = movingState;
       stateStartedAt = millis();
-      Serial.print("setMovingState: ");
-      Serial.println(movingState);
+      SERIAL_DEBUG("setMovingState: ");
+      SERIAL_DEBUGLN(movingState);
     }
 }
 
 void startTrain() {
-    Serial.println("startTrain");
+    SERIAL_DEBUGLN("startTrain");
     trainRunning = true;
     fullSpeed = false;
     setLightState();
@@ -227,6 +242,6 @@ void stopTrain() {
     digitalWrite(AUD_TRACK_SND03_PIN, HIGH);
     trackStartedAt = 0;    
     stopped = true;
-    Serial.println("stopTrain");
+    SERIAL_DEBUGLN("stopTrain");
 }
 
