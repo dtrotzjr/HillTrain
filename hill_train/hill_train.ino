@@ -45,8 +45,23 @@ bool stopped = true;
 #define STATE_MOVING        3
 #define STATE_STOPPING      4
 
+#define VOLUME_LOW_STATE 0
+#define VOLUME_MED_STATE 1
+#define VOLUME_HGH_STATE 2
+
+#define VOLUME_STEPS_HIGH_TO_LOW 128
+#define VOLUME_STEPS_LOW_TO_MED 64
+#define VOLUME_STEPS_MED_TO_HIGH 64
+
+int currentVolumeState = VOLUME_HGH_STATE;
+
 long trackStartedAt = 0;
 long cycleStartedAt = 0;
+
+int lastRXD1PinState = LOW;
+int currentVolumeStepMax = 0;
+int currentVolumeStep = 0;
+
 
 int currentMovingState = STATE_STOPPED;
 
@@ -89,6 +104,49 @@ void setup() {
 void loop() {
     setLightState();
     setMotorState();
+    respondToVolumeChange();
+}
+
+void respondToVolumeChange() {
+  int currentRXD1PinState = digitalRead(RX_D1_PIN);
+  if (currentRXD1PinState != lastRXD1PinState) {
+    switch (currentVolumeState) {
+      case VOLUME_LOW_STATE:
+        SERIAL_DEBUGLN("Volume Med");
+        currentVolumeState = VOLUME_MED_STATE;
+        currentVolumeStep = 0;
+        currentVolumeStepMax = VOLUME_STEPS_LOW_TO_MED;
+      break;
+      case VOLUME_MED_STATE:
+        SERIAL_DEBUGLN("Volume High");
+        currentVolumeState = VOLUME_HGH_STATE;
+        currentVolumeStep = 0;
+        currentVolumeStepMax = VOLUME_STEPS_MED_TO_HIGH;
+      break;
+      case VOLUME_HGH_STATE:
+        SERIAL_DEBUGLN("Volume Low");
+        currentVolumeState = VOLUME_LOW_STATE;
+        currentVolumeStep = 0;
+        currentVolumeStepMax = VOLUME_STEPS_HIGH_TO_LOW;
+      break;
+    }
+    lastRXD1PinState = currentRXD1PinState;
+  }
+  if (currentVolumeStep < currentVolumeStepMax) {
+    currentVolumeStep++;
+    int pin = AUD_VOL_UP_PIN;
+    if (currentVolumeState == VOLUME_LOW_STATE) {
+      pin = AUD_VOL_DN_PIN;
+      SERIAL_DEBUG("-");
+    } else {
+      SERIAL_DEBUG("+");
+    }
+    
+    delay(5);
+    digitalWrite(pin, HIGH);
+    delay(5);
+    digitalWrite(pin, LOW);
+  }
 }
 
 void userToggledTrainState() {
